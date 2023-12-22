@@ -1,0 +1,43 @@
+{
+  "name": "TuniDesign-al-makteb",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon server/index.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "body-parser": "^1.20.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.1",
+    "express": "^4.17.1",
+    "express-fileupload": "^1.4.0",
+    "express-paginate": "^1.0.2",
+    "express-rate-limit": "^6.7.0",
+    "fs": "^0.0.1-security",
+    "jsonwebtoken": "^8.5.1",
+    "jwt-decode": "^3.1.2",
+    "moment": "^2.29.4",
+    "mongoose": "^5.12.10",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
+    "mysql-connection-pool-manager": "^1.5.9",
+    "mysql2": "^2.3.3",
+    "node-fetch": "^2.6.7",
+    "node-geocoder": "^4.2.0",
+    "nodemailer": "^6.7.5",
+    "nodemon": "^2.0.21",
+    "path": "^0.12.7",
+    "request-promise": "^4.2.6",
+    "socket.io": "^4.6.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.14.3",
+    "@babel/preset-env": "^7.14.2",
+    "@babel/preset-react": "^7.13.13",
+    "babel-loader": "^8.2.2",
+    "nodemon": "^2.0.7",
+    "webpack": "^5.37.1",
+    "webpack-cli": "^4.7.0"
+  }
+}
