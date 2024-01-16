@@ -98,7 +98,7 @@ let getallrappels = (req, res) => {
   
     const sql = `UPDATE rappelles SET isUnRead = 'true' WHERE idrappelles IN (?) AND users_id = ?`;
   
-    db.query(sql, [idrappelles], (err, result) => {
+    db.query(sql, [idrappelles,users_id], (err, result) => {
       if (err) {
         console.error("Error updating records:", err);
         res.status(500).send("Internal Server Error");
