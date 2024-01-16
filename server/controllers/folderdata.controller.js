@@ -9,52 +9,6 @@ let getdata = (req, res) => {
   };
   let insertfolderdata = (req, res) => {
     let {
-      numeroDossier,
-      demandeur,
-      nomdedemandeur,
-      Tribunal,
-      ville,
-      Matière,
-      T,
-      nuLecas,
-      Datedelaudience,
-      conclusion,
-      Ledéfendeur,
-      nomdudéfendeur,
-      honoraires,
-      reste,
-      Datedujugement,
-      Textedujugement,
-    } = req.body;
-  
-    // Format date strings to 'YYYY-MM-DD' format
-    const formattedDatedelaudience = new Date(Datedelaudience).toISOString().split('T')[0];
-    const formattedDatedujugement = new Date(Datedujugement).toISOString().split('T')[0];
-  
-    const sql = `INSERT INTO produit (
-          numeroDossier,
-          demandeur,
-          nomdedemandeur,
-          Tribunal,
-          ville,
-          Matière,
-          T,
-          nuLecas,
-          Datedelaudience,
-          conclusion,
-          Ledéfendeur,
-          nomdudéfendeur,
-          archives,
-          honoraires,
-          reste,
-          Datedujugement,
-          Textedujugement,
-          users_id
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
-  
-    db.query(
-      sql,
-      [
         numeroDossier,
         demandeur,
         nomdedemandeur,
@@ -63,60 +17,137 @@ let getdata = (req, res) => {
         Matière,
         T,
         nuLecas,
-        formattedDatedelaudience,
+        Datedelaudience,
         conclusion,
         Ledéfendeur,
         nomdudéfendeur,
-        'false', // Set the string value 'false' for "archives"
         honoraires,
         reste,
-        formattedDatedujugement,
+        Datedujugement,
         Textedujugement,
-        1, // Assuming users_id is an int
-      ],
-      (err, result) => {
-        if (err) {
-          console.error(err);
-          res.status(500).send('Internal Server Error');
-        } else {
-          res.status(200).send(result);
+        users_id
+    } = req.body;
+
+    const formattedDatedelaudience = new Date(Datedelaudience).toISOString().split('T')[0];
+    const formattedDatedujugement = new Date(Datedujugement).toISOString().split('T')[0];
+
+    let idCounter = 1;
+
+    const currentDate = new Date();
+
+const oneHourLater = new Date(currentDate.getTime() + 60 * 60 * 1000);
+
+const firstItem = {
+    id: idCounter++,
+    created_at: oneHourLater.toISOString(),
+    text: "في الإنتظار تعيين الجلسة"
+};
+
+const secondItem = {
+    id: idCounter++,
+    created_at: new Date(oneHourLater.getTime() + 60 * 60 * 1000).toISOString(), 
+    text: Textedujugement
+};
+
+    const TextedujugementArray = [firstItem, secondItem];
+
+    const sql = `INSERT INTO produit (
+        numeroDossier,
+        demandeur,
+        nomdedemandeur,
+        Tribunal,
+        ville,
+        Matière,
+        T,
+        nuLecas,
+        Datedelaudience,
+        conclusion,
+        Ledéfendeur,
+        nomdudéfendeur,
+        archives,
+        honoraires,
+        reste,
+        Datedujugement,
+        Textedujugement,
+        users_id
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+
+    db.query(
+        sql,
+        [
+            numeroDossier,
+            demandeur,
+            nomdedemandeur,
+            Tribunal,
+            ville,
+            Matière,
+            T,
+            nuLecas,
+            formattedDatedelaudience,
+            conclusion,
+            Ledéfendeur,
+            nomdudéfendeur,
+            'false',
+            honoraires,
+            reste,
+            formattedDatedujugement,
+            JSON.stringify(TextedujugementArray),
+            users_id
+        ],
+        (err, result) => {
+            if (err) {
+                console.error(err);
+                res.status(500).send('Internal Server Error');
+            } else {
+                res.status(200).send(result);
+            }
         }
-      }
     );
-  };
+};
   
-  let getcasebynumber = (req, res) => {
+let getCaseByNumberAndUserId = (req, res) => {
     const numeroDossier = req.params.numeroDossier;
-    const sql = `SELECT * from produit where numeroDossier = ?`; 
-    db.query(sql, [numeroDossier], (err, result) => {
-      if (err) res.send(err);
-      else res.send(result);
-    });
-  };
-  let archive = (req, res) => {
-    const numeroDossier = req.body.numeroDossier; 
-    if (!numeroDossier || !Array.isArray(numeroDossier) || numeroDossier.length === 0) {
-      return res.status(400).send("Invalid or empty array of numeroDossier");
-    }
-  
-    const sql = `UPDATE produit SET archives = 'true' WHERE numeroDossier IN (?)`;
-  
-    db.query(sql, [numeroDossier], (err, result) => {
-      if (err) {
-        console.error("Error updating records:", err);
-        res.status(500).send("Internal Server Error");
-      } else {
-        console.log(result);
-        if (result.changedRows > 0) {
-          res.send("Records updated successfully");
+    const users_id = req.params.users_id; 
+
+    const sql = `SELECT * FROM produit WHERE numeroDossier = ? AND users_id = ?`;
+    
+    db.query(sql, [numeroDossier, users_id], (err, result) => {
+        if (err) {
+            res.status(500).send(err);
         } else {
-          res.send("No matching records found");
+            res.send(result);
         }
-      }
     });
-  };
-  const updateContractData = (req, res) => {
+};
+
+let archiveByUserId = (req, res) => {
+    const numeroDossier = req.body.numeroDossier;
+    const users_id = req.params.users_id;
+
+    if (!numeroDossier || !Array.isArray(numeroDossier) || numeroDossier.length === 0 || !users_id) {
+        return res.status(400).send("Invalid or empty array of numeroDossier or missing users_id");
+    }
+
+    const sql = `UPDATE produit SET archives = 'true' WHERE numeroDossier IN (?) AND users_id = ?`;
+
+    db.query(sql, [numeroDossier, users_id], (err, result) => {
+        if (err) {
+            console.error("Error updating records:", err);
+            res.status(500).send("Internal Server Error");
+        } else {
+            console.log(result);
+            if (result.changedRows > 0) {
+                res.send("Records updated successfully");
+            } else {
+                res.send("No matching records found");
+            }
+        }
+    });
+};
+
+const updateContractData = (req, res) => {
     const numeroDossier = req.params.numeroDossier;
+    const users_id = req.params.users_id;
     const {
         Tribunal,
         ville,
@@ -130,8 +161,26 @@ let getdata = (req, res) => {
         Datedujugement,
         Textedujugement,
     } = req.body;
+    
+    const fetchExistingTextedujugementSql = "SELECT Textedujugement FROM produit WHERE numeroDossier = ? AND users_id = ?";
+    db.query(fetchExistingTextedujugementSql, [numeroDossier, users_id], (fetchError, fetchResult) => {
+        if (fetchError) {
+            console.error("Error fetching existing record:", fetchError);
+            res.status(500).json({
+                error: `Internal Server Error: ${fetchError.message}`,
+            });
+        } else {
+            const existingTextedujugementArray = JSON.parse(fetchResult[0].Textedujugement);
 
-    let updates = [];
+            const mergedTextedujugementArray = existingTextedujugementArray.concat({
+                id: existingTextedujugementArray.length,
+                created_at: new Date().toISOString(),
+                text: Textedujugement,
+            });
+
+            const mergedTextedujugementString = JSON.stringify(mergedTextedujugementArray);
+    
+            let updates = [];
     if (Tribunal) {
         updates.push({ column: "Tribunal", value: Tribunal });
     }
@@ -160,7 +209,7 @@ let getdata = (req, res) => {
         updates.push({ column: "reste", value: reste });
     }
     if (Textedujugement) {
-        updates.push({ column: "Textedujugement", value: Textedujugement });
+        updates.push({ column: "Textedujugement", value: mergedTextedujugementString });
     }
     if (Datedujugement) {
         updates.push({ column: "Datedujugement", value: Datedujugement });
@@ -172,45 +221,49 @@ let getdata = (req, res) => {
     }
 
     let sql = "UPDATE produit SET ";
-    let params = [];
-    updates.forEach((update, index) => {
-        sql += `${update.column} = ?`;
-        params.push(update.value);
-        if (index !== updates.length - 1) {
-            sql += ", ";
-        }
-    });
-
-    // Add numeroDossier as a parameter
-    params.push(numeroDossier);
-
-    sql += " WHERE numeroDossier = ?";
-
-    db.query(sql, params, (err, result) => {
-        if (err) {
-            console.error("Error updating record:", err);
-            res.status(500).json({
-                error: `Internal Server Error: ${err.message}`,
-                sqlQuery: sql,
-                sqlParams: params,
+            let params = [];
+            updates.forEach((update, index) => {
+                sql += `${update.column} = ?`;
+                params.push(update.value);
+                if (index !== updates.length - 1) {
+                    sql += ", ";
+                }
             });
-        } else {
-            console.log(result);
-            if (result.affectedRows > 0) {
-                res.json({ message: "Record updated successfully", result });
-            } else {
-                res.status(404).json({ error: "No matching record found", result });
-            }
+
+            params.push(numeroDossier);
+            params.push(users_id);
+
+            sql += " WHERE numeroDossier = ? AND users_id = ?";
+
+            db.query(sql, params, (err, result) => {
+                if (err) {
+                    console.error("Error updating record:", err);
+                    res.status(500).json({
+                        error: `Internal Server Error: ${err.message}`,
+                        sqlQuery: sql,
+                        sqlParams: params,
+                    });
+                } else {
+                    console.log(result);
+                    if (result.affectedRows > 0) {
+                        res.json({ message: "Record updated successfully", result });
+                    } else {
+                        res.status(404).json({ error: "No matching record found", result });
+                    }
+                }
+            });
         }
     });
 };
 
 
+
+
   
   module.exports = {
     getdata,
-    getcasebynumber,
-    archive,
+    getCaseByNumberAndUserId,
+    archiveByUserId,
     updateContractData,
     insertfolderdata
   };
