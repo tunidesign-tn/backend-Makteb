@@ -19,6 +19,14 @@ let getdata = (req, res) => {
         }
     });
 };
+let getallrappels = (req, res) => {
+  const id = req.params.id;
+  const sql = `SELECT * from rappelles where users_id=?`;
+  db.query(sql, [id], (err, result) => {
+    if (err) res.send(err);
+    else res.send(result);
+  });
+};
 
   let insertrappellesdata = (req, res) => {
     let {
@@ -108,6 +116,7 @@ let getdata = (req, res) => {
 
   module.exports = {
     getdata,
+    getallrappels,
     insertrappellesdata,
     deleteRappelleById,
     isUnRead
