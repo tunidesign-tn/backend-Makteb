@@ -90,12 +90,13 @@ let getallrappels = (req, res) => {
     });
   };
   let isUnRead = (req, res) => {
+    const users_id = req.params.users_id; 
     const idrappelles = req.body.idrappelles; 
     if (!idrappelles || !Array.isArray(idrappelles) || idrappelles.length === 0) {
       return res.status(400).send("Invalid or empty array of idrappelles");
     }
   
-    const sql = `UPDATE rappelles SET isUnRead = 'true' WHERE idrappelles IN (?)`;
+    const sql = `UPDATE rappelles SET isUnRead = 'true' WHERE idrappelles IN (?) AND users_id = ?`;
   
     db.query(sql, [idrappelles], (err, result) => {
       if (err) {
