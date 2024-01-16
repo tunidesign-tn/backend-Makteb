@@ -110,16 +110,21 @@ let getCaseByNumberAndUserId = (req, res) => {
     const users_id = req.params.users_id; 
 
     const sql = `SELECT * FROM produit WHERE numeroDossier = ? AND users_id = ?`;
-    
+
     db.query(sql, [numeroDossier, users_id], (err, result) => {
         if (err) {
             res.status(500).send(err);
         } else {
+            result.forEach((caseData) => {
+                if (caseData.Textedujugement) {
+                    caseData.Textedujugement = JSON.parse(caseData.Textedujugement);
+                }
+            });
+
             res.send(result);
         }
     });
-};
-
+}
 let archiveByUserId = (req, res) => {
     const numeroDossier = req.body.numeroDossier;
     const users_id = req.params.users_id;
