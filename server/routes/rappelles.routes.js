@@ -11,6 +11,6 @@ const {
   router.get("/getdatarappeles/:id", getdata);//done  
   router.get("/getallrappels/:id", getallrappels);//done 
   router.post("/insertrappellesdata", insertrappellesdata);//done
-  router.put ("/isUnRead/:id",isUnRead)
+  router.put ("/isUnRead/:users_id",isUnRead)
   router.delete("/delete/:id", deleteRappelleById);//done
   module.exports = router;
