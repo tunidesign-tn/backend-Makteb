@@ -306,12 +306,9 @@ const updateContractData = async (req, res) => {
                 if (Datedujugement) {
                     updates.push({ column: "Datedujugement", value: Datedujugement });
                 }
-                if (updates.length === 0) {
-                    res.status(400).json({ error: "No updates provided" });
-                    return;
-                }
+                console.log('Updates:', updates);
 
-        res.json({ message: "Record updated successfully" });
+                res.json({ message: "Record updated successfully" });
     } catch (error) {
         console.error("Error in updateContractData:", error);
         res.status(500).json({
