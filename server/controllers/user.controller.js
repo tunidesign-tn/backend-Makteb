@@ -2,18 +2,17 @@ var db = require("../database-mysql");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
+
 const register = async (req, res) => {
   try {
-    const { email, pass, } = req.body;
-    const name = "Dhaou";
-    const lastname = "yahya";
-    const phone = "90620017";
-    const created_at = new Date().toISOString().split('T')[0];
+    const { email, pass,name,lastname,phone,idrne,idorder,idfiscal} = req.body;
+
     const role ="Admin"
     const hashedpass = await bcrypt.hash(pass, 10);
+    const created_at = new Date()
 
     const sql =
-      "INSERT INTO users (name, lastname, email, pass, phone, created_at,role) VALUES (?,?,?,?,?,?,?) ";
+      "INSERT INTO users (name, lastname, email, pass, phone, created_at,role,idrne,idorder,idfiscal) VALUES (?,?,?,?,?,?,?,?,?,?) ";
     db.query(
       sql,
       [
@@ -24,6 +23,7 @@ const register = async (req, res) => {
         phone,
         created_at,
         role,
+        idrne,idorder,idfiscal
       ],
       (err, result) => {
        if (err) console.log(err);
@@ -69,6 +69,23 @@ const login = async (req, res) => {
 // get all users
 let getAllUsers = (req, res) => {
   db.query("SELECT * FROM users", (err, result) => {
+    if (err) {
+      res.status(500).send(err);
+    } else {
+      res.status(200).send(result);
+    }
+  });
+};
+const getAllUsersExceptOne = (req, res) => {
+  const userId = req.params.id;
+
+  if (!userId) {
+    return res.status(400).send("User ID is required");
+  }
+
+  const query = "SELECT * FROM users WHERE idusers <> ?";
+
+  db.query(query, [userId], (err, result) => {
     if (err) {
       res.status(500).send(err);
     } else {
@@ -157,6 +174,6 @@ module.exports = {
   register,
   login,
   getUserById,
-  UpdateProfile
- 
+  UpdateProfile,
+  getAllUsersExceptOne
 };

@@ -6,11 +6,18 @@ const cors = require("cors");
 const paginate = require("express-paginate");
 const usersRoutes = require("./routes/user.routes");
 const folderdata = require('./routes/folderdata.routes');
-const rappellesdata=require('./routes/rappelles.routes')
+const rappellesdata = require('./routes/rappelles.routes');
+const Executor=require('./routes/Executor.routes')
+const Payements= require('./routes/Payements.routes')
+const support_Invoice=require('./routes/support_Invoice.routes')
+const support_text_du_jugement=require('./routes/support_text_du_jugement.routes')
+const support_tribunal=require('./routes/support_tribunal.routes')
+const Proxy= require ('./routes/proxy.routes')
 const database = require("./database-mysql");
 
+
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8000;
 
 app.use(cors({ origin: "*" }));
 app.use(morgan("dev"));
@@ -24,8 +31,15 @@ app.use(paginate.middleware(10, 50));
 app.use(usersRoutes);
 app.use(folderdata);
 app.use(rappellesdata)
+app.use(Executor)
+app.use(Payements)
+app.use(support_Invoice)
+app.use(support_text_du_jugement)
+app.use(support_tribunal)
+app.use(Proxy)
+
 app.get("/", (req, res) => {
-  res.send("Welcome To TuniDesign-al-makteb server");
+  res.send("Welcome To TuniDesign-al-makteb  Backend server");
 });
 
 // Start the server

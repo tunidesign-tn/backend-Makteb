@@ -7,6 +7,41 @@ let getdata = (req, res) => {
       else res.send(result);
     });
   };
+  const getDataCombined = (req, res) => {
+    const id = req.params.id;
+  
+    const produitSql = `SELECT id, nuLecas, Tribunal, ville, Datedelaudience FROM produit WHERE users_id=?`;
+    const rappellesSql = `SELECT idrappelles, title, description, deadline, createdAt, null as nuLecas, null as Tribunal, null as ville, null as Datedelaudience FROM rappelles WHERE users_id=?`;
+  
+    db.query(produitSql, [id], (errProduit, resultProduit) => {
+      if (errProduit) {
+        res.status(500).send(errProduit);
+        return;
+      }
+  
+      db.query(rappellesSql, [id], (errRappelles, resultRappelles) => {
+        if (errRappelles) {
+          res.status(500).send(errRappelles);
+          return;
+        }
+  
+        const combinedData = resultProduit.map(item => ({
+          id: item.id,
+          title: `${item.nuLecas} ${item.Tribunal} ${item.ville}`,
+          date: item.Datedelaudience.toISOString().split('T')[0],
+        })).concat(resultRappelles.map(item => ({
+          id: item.idrappelles,
+          title: `${item.title} ${item.description}`,
+          date: item.deadline.toISOString().split('T')[0],
+        })));
+  
+        res.send(combinedData);
+      });
+    });
+  };
+  
+
+  
   let insertfolderdata = (req, res) => {
     let {
         numeroDossier,
@@ -21,11 +56,6 @@ let getdata = (req, res) => {
         conclusion,
         Ledéfendeur,
         nomdudéfendeur,
-        honoraires,
-        reste,
-        texthonoraires,
-        payement,
-        textpayment,
         Datedujugement,
         Textedujugement,
         users_id
@@ -34,31 +64,26 @@ let getdata = (req, res) => {
     const formattedDatedelaudience = new Date(Datedelaudience).toISOString().split('T')[0];
     const formattedDatedujugement = new Date(Datedujugement).toISOString().split('T')[0];
 
-   
+    let idCounter = 1;
 
     const currentDate = new Date();
 
-    const oneHourLater = new Date(currentDate.getTime() + 60 * 60 * 1000);
+const oneHourLater = new Date(currentDate.getTime() + 60 * 60 * 1000);
 
-    const FirstItem = {
-        id: 1,
-        created_at: oneHourLater.toISOString(), 
-        text: Textedujugement
-    };
-    const firstItemhonoraires = {
-        id: 1,
-        created_at: oneHourLater.toISOString(),
-        sum: honoraires,
-        text:texthonoraires
-    };
+const firstItem = {
+    id: idCounter++,
+    created_at: oneHourLater.toISOString(),
+    text: "في الإنتظار تعيين الجلسة"
+};
 
-    const firstItempayment = {
-        id: 1,
-        created_at: oneHourLater.toISOString(),
-        sum: payement,
-        text:textpayment
-    };
-    const TextedujugementArray = [FirstItem];
+const secondItem = {
+    id: idCounter++,
+    created_at: new Date(oneHourLater.getTime() + 60 * 60 * 1000).toISOString(), 
+    text: Textedujugement
+};
+
+    const TextedujugementArray = [firstItem, secondItem];
+
     const sql = `INSERT INTO produit (
         numeroDossier,
         demandeur,
@@ -73,13 +98,10 @@ let getdata = (req, res) => {
         Ledéfendeur,
         nomdudéfendeur,
         archives,
-        honoraires,
-        reste,
-        payement,
         Datedujugement,
         Textedujugement,
         users_id
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
 
     db.query(
         sql,
@@ -97,9 +119,6 @@ let getdata = (req, res) => {
             Ledéfendeur,
             nomdudéfendeur,
             'false',
-            JSON.stringify([firstItemhonoraires]),
-            reste, 
-            JSON.stringify([firstItempayment]),
             formattedDatedujugement,
             JSON.stringify(TextedujugementArray),
             users_id
@@ -128,14 +147,6 @@ let getCaseByNumberAndUserId = (req, res) => {
             result.forEach((caseData) => {
                 if (caseData.Textedujugement) {
                     caseData.Textedujugement = JSON.parse(caseData.Textedujugement);
-                }
-
-                if (caseData.honoraires) {
-                    caseData.honoraires = JSON.parse(caseData.honoraires);
-                }
-
-                if (caseData.payement) {
-                    caseData.payement = JSON.parse(caseData.payement);
                 }
             });
 
@@ -168,92 +179,7 @@ let archiveByUserId = (req, res) => {
     });
 };
 
-const fetchAndMergeArray = (columnName, existingArray, newValue, newText) => {
-    let newArrayItem;
-
-    if (columnName === "Textedujugement") {
-        newArrayItem = {
-            id: existingArray.length + 1,
-            created_at: new Date().toISOString(),
-            text: newText,
-        };
-    } else if (columnName === "payement" || columnName === "honoraires") {
-        newArrayItem = {
-            id: existingArray.length + 1,
-            created_at: new Date().toISOString(),
-            sum: newValue,
-            text: newText,
-        };
-    } else {
-        newArrayItem = {
-            id: existingArray.length + 1,
-            created_at: new Date().toISOString(),
-            sum: newValue,
-            text: newText,
-        };
-    }
-
-    const mergedArray = existingArray.concat(newArrayItem);
-    return JSON.stringify(mergedArray);
-};
-
-const fetchAndMergeAndUpdate = (columnName, existingValue, newValue, newText, numeroDossier, users_id) => {
-    return new Promise((resolve, reject) => {
-        const fetchExistingSql = `SELECT ${columnName} FROM produit WHERE numeroDossier = ? AND users_id = ?`;
-
-        db.query(fetchExistingSql, [numeroDossier, users_id], (fetchError, fetchResult) => {
-            if (fetchError) {
-                console.error("Error fetching existing record:", fetchError);
-                reject(fetchError);
-            } else {
-                const existingArray = JSON.parse(fetchResult[0][columnName]);
-                const mergedString = fetchAndMergeArray(columnName, existingArray, newValue, newText);
-
-                let updates = [];
-                if (newValue) {
-                    updates.push({ column: columnName, value: mergedString });
-                }
-                
-
-                if (updates.length === 0) {
-                    resolve(); 
-                    return;
-                }
-
-                let sql = "UPDATE produit SET ";
-                let params = [];
-                updates.forEach((update, index) => {
-                    sql += `${update.column} = ?`;
-                    params.push(update.value);
-                    if (index !== updates.length - 1) {
-                        sql += ", ";
-                    }
-                });
-
-                params.push(numeroDossier);
-                params.push(users_id);
-
-                sql += " WHERE numeroDossier = ? AND users_id = ?";
-
-                db.query(sql, params, (err, result) => {
-                    if (err) {
-                        console.error("Error updating record:", err);
-                        reject(err);
-                    } else {
-                        console.log(result);
-                        if (result.affectedRows > 0) {
-                            resolve();
-                        } else {
-                            reject({ message: "No matching record found", result });
-                        }
-                    }
-                });
-            }
-        });
-    });
-};
-
-const updateContractData = async (req, res) => {
+const updateContractData = (req, res) => {
     const numeroDossier = req.params.numeroDossier;
     const users_id = req.params.users_id;
     const {
@@ -265,58 +191,104 @@ const updateContractData = async (req, res) => {
         Datedelaudience,
         conclusion,
         honoraires,
-        texthonoraires,
-        payement,
-        textpayment,
         reste,
         Datedujugement,
         Textedujugement,
     } = req.body;
+    
+    const fetchExistingTextedujugementSql = "SELECT Textedujugement FROM produit WHERE numeroDossier = ? AND users_id = ?";
+    db.query(fetchExistingTextedujugementSql, [numeroDossier, users_id], (fetchError, fetchResult) => {
+        if (fetchError) {
+            console.error("Error fetching existing record:", fetchError);
+            res.status(500).json({
+                error: `Internal Server Error: ${fetchError.message}`,
+            });
+        } else {
+            const existingTextedujugementArray = JSON.parse(fetchResult[0].Textedujugement);
 
-    try {
-        await fetchAndMergeAndUpdate("Textedujugement", Textedujugement, Textedujugement, Textedujugement, numeroDossier, users_id);
-        await fetchAndMergeAndUpdate("payement", payement, payement, textpayment, numeroDossier, users_id);
-        await fetchAndMergeAndUpdate("honoraires", honoraires, honoraires, texthonoraires, numeroDossier, users_id);
+            const mergedTextedujugementArray = existingTextedujugementArray.concat({
+                id: existingTextedujugementArray.length,
+                created_at: new Date().toISOString(),
+                text: Textedujugement,
+            });
 
-        let updates = [];
-                if (Tribunal) {
-                    updates.push({ column: "Tribunal", value: Tribunal });
-                }
-                if (ville) {
-                    updates.push({ column: "ville", value: ville });
-                }
-                if (Matière) {
-                    updates.push({ column: "Matière", value: Matière });
-                }
-                if (T) {
-                    updates.push({ column: "T", value: T });
-                }
-                if (nuLecas) {
-                    updates.push({ column: "nuLecas", value: nuLecas });
-                }
-                if (Datedelaudience) {
-                    updates.push({ column: "Datedelaudience", value: Datedelaudience });
-                }
-                if (conclusion) {
-                    updates.push({ column: "conclusion", value: conclusion });
-                }
-                if (reste) {
-                    updates.push({ column: "reste", value: reste });
-                }
-                if (Datedujugement) {
-                    updates.push({ column: "Datedujugement", value: Datedujugement });
-                }
-                console.log('Updates:', updates);
-
-                res.json({ message: "Record updated successfully" });
-    } catch (error) {
-        console.error("Error in updateContractData:", error);
-        res.status(500).json({
-            error: `Internal Server Error: ${error.message}`,
-        });
+            const mergedTextedujugementString = JSON.stringify(mergedTextedujugementArray);
+    
+            let updates = [];
+    if (Tribunal) {
+        updates.push({ column: "Tribunal", value: Tribunal });
     }
-};
+    if (ville) {
+        updates.push({ column: "ville", value: ville });
+    }
+    if (Matière) {
+        updates.push({ column: "Matière", value: Matière });
+    }
+    if (T) {
+        updates.push({ column: "T", value: T });
+    }
+    if (nuLecas) {
+        updates.push({ column: "nuLecas", value: nuLecas });
+    }
+    if (Datedelaudience) {
+        updates.push({ column: "Datedelaudience", value: Datedelaudience });
+    }
+    if (conclusion) {
+        updates.push({ column: "conclusion", value: conclusion });
+    }
+    if (honoraires) {
+        updates.push({ column: "honoraires", value: honoraires });
+    }
+    if (reste) {
+        updates.push({ column: "reste", value: reste });
+    }
+    if (Textedujugement) {
+        updates.push({ column: "Textedujugement", value: mergedTextedujugementString });
+    }
+    if (Datedujugement) {
+        updates.push({ column: "Datedujugement", value: Datedujugement });
+    }
 
+    if (updates.length === 0) {
+        res.status(400).json({ error: "No updates provided" });
+        return;
+    }
+
+    let sql = "UPDATE produit SET ";
+            let params = [];
+            updates.forEach((update, index) => {
+                sql += `${update.column} = ?`;
+                params.push(update.value);
+                if (index !== updates.length - 1) {
+                    sql += ", ";
+                }
+            });
+
+            params.push(numeroDossier);
+            params.push(users_id);
+
+            sql += " WHERE numeroDossier = ? AND users_id = ?";
+
+            db.query(sql, params, (err, result) => {
+                if (err) {
+                    console.error("Error updating record:", err);
+                    res.status(500).json({
+                        error: `Internal Server Error: ${err.message}`,
+                        sqlQuery: sql,
+                        sqlParams: params,
+                    });
+                } else {
+                    console.log(result);
+                    if (result.affectedRows > 0) {
+                        res.json({ message: "Record updated successfully", result });
+                    } else {
+                        res.status(404).json({ error: "No matching record found", result });
+                    }
+                }
+            });
+        }
+    });
+};
 
 
 
@@ -327,5 +299,6 @@ const updateContractData = async (req, res) => {
     getCaseByNumberAndUserId,
     archiveByUserId,
     updateContractData,
-    insertfolderdata
+    insertfolderdata,
+    getDataCombined
   };

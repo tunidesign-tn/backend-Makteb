@@ -19,6 +19,8 @@ let getdata = (req, res) => {
         }
     });
 };
+
+
 let getallrappels = (req, res) => {
   const id = req.params.id;
   const sql = `SELECT * from rappelles where users_id=?`;
